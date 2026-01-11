@@ -1,0 +1,9 @@
+streamlit
+qdrant-client
+sentence-transformers
+google-generativeai
+python-dotenv
+langchain
+langchain-text-splitters
+crawl4ai
+beautifulsoup4
