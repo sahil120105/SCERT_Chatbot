@@ -6,15 +6,14 @@ from src.rag_engine import MarathiRAG
 st.set_page_config(page_title="SCERT Marathi Sahayak", layout="centered")
 st.title("🇮🇳 SCERT Website Assistant")
 
-# Initialize Engine
+# Initialize RAG Engine (Cached so it doesn't reload on every click)
 @st.cache_resource
 def get_engine():
-    # Ensure this function connects to your CLOUD database if deployed
     return MarathiRAG()
 
 engine = get_engine()
 
-# Initialize History
+# Initialize Chat History
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -22,36 +21,34 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        
-        # --- COLLAPSIBLE SOURCES FOR HISTORY ---
+        # If there were sources saved with this message, show them
         if "sources" in message and message["sources"]:
-            # Use an expander with a clear label
-            with st.expander("🔗 संदर्भ पहा (View Sources)"):
-                for url in message["sources"]:
-                    st.markdown(f"- [{url}]({url})")
+            st.caption("🔗 संदर्भ (Sources):")
+            for url in message["sources"]:
+                st.markdown(f"- [{url}]({url})")
 
-# Handle New Input
-if prompt := st.chat_input("तुमचा प्रश्न येथे विचारा..."):
-    # 1. User Message
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# User Input
+if prompt := st.chat_input("तुमचा प्रश्न येथे विचारा... (Ask your question here)"):
+    # 1. Show User Message
     st.chat_message("user").markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
 
     # 2. Generate Answer
     with st.chat_message("assistant"):
-        with st.spinner("विचार करत आहे... (Thinking...)"):
+        with st.spinner("शोधत आहे... (Searching...)"):
+            # Note: Ensure you are passing 'chat_history' if your engine expects it
             response_text, sources = engine.generate_answer(
-                prompt, 
-                chat_history=st.session_state.messages
+                prompt
             )
             
             st.markdown(response_text)
             
-            # --- COLLAPSIBLE SOURCES FOR NEW ANSWER ---
+            # --- COLLAPSIBLE SOURCES ---
             if sources:
                 with st.expander("🔗 संदर्भ पहा (View Sources)"):
                     for url in sources:
                         st.markdown(f"- [{url}]({url})")
-                        
+
     # 3. Save Assistant Message
     st.session_state.messages.append({
         "role": "assistant", 
